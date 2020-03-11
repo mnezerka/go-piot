@@ -2,7 +2,7 @@ package piot
 
 import (
     "testing"
-    "go-piot/model"
+    "github.com/mnezerka/go-piot/model"
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
 

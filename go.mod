@@ -1,4 +1,4 @@
-module go-piot
+module github.com/mnezerka/go-piot
 
 go 1.12
 
