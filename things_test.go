@@ -1,16 +1,18 @@
-package piot
+package piot_test
 
 import (
     "testing"
+    "github.com/mnezerka/go-piot"
     "github.com/mnezerka/go-piot/model"
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestGetExistingThing(t *testing.T) {
-    CleanDb(t)
-    things := NewThings(GetDb(t), GetLogger(t))
+    db := GetDb(t)
+    CleanDb(t, db)
+    things := piot.NewThings(GetDb(t), GetLogger(t))
 
-    id := CreateThing(t, "thing1")
+    id := CreateThing(t, db, "thing1")
 
     thing, err := things.Get(id)
     Ok(t, err)
@@ -19,8 +21,9 @@ func TestGetExistingThing(t *testing.T) {
 
 
 func TestGetUnknownThing(t *testing.T) {
-    CleanDb(t)
-    things := NewThings(GetDb(t), GetLogger(t))
+    db := GetDb(t)
+    CleanDb(t, db)
+    things := piot.NewThings(GetDb(t), GetLogger(t))
 
     id := primitive.NewObjectID()
 
@@ -29,23 +32,26 @@ func TestGetUnknownThing(t *testing.T) {
 }
 
 func TestFindUnknownThing(t *testing.T) {
-    CleanDb(t)
-    things := NewThings(GetDb(t), GetLogger(t))
+    db := GetDb(t)
+    CleanDb(t, db)
+    things := piot.NewThings(GetDb(t), GetLogger(t))
     _, err := things.Find("xx")
     Assert(t, err != nil, "Thing shall not be found")
 }
 
 func TestFindExistingThing(t *testing.T) {
-    CleanDb(t)
-    CreateThing(t, "thing1")
-    things := NewThings(GetDb(t), GetLogger(t))
+    db := GetDb(t)
+    CleanDb(t, db)
+    CreateThing(t, db, "thing1")
+    things := piot.NewThings(GetDb(t), GetLogger(t))
     _, err := things.Find("thing1")
     Ok(t, err)
 }
 
 func TestRegisterThing(t *testing.T) {
-    CleanDb(t)
-    things := NewThings(GetDb(t), GetLogger(t))
+    db := GetDb(t)
+    CleanDb(t, db)
+    things := piot.NewThings(GetDb(t), GetLogger(t))
     thing, err := things.RegisterPiot("thing1", "sensor")
     Ok(t, err)
     Equals(t, "thing1", thing.PiotId)
@@ -54,15 +60,16 @@ func TestRegisterThing(t *testing.T) {
 }
 
 func TestSetParent(t *testing.T) {
-    CleanDb(t)
+    db := GetDb(t)
+    CleanDb(t, db)
 
     const THING_NAME_PARENT = "parent"
-    id_parent := CreateThing(t, THING_NAME_PARENT)
+    id_parent := CreateThing(t, db, THING_NAME_PARENT)
 
     const THING_NAME_CHILD = "child"
-    id_child := CreateThing(t, THING_NAME_CHILD)
+    id_child := CreateThing(t, db, THING_NAME_CHILD)
 
-    things := NewThings(GetDb(t), GetLogger(t))
+    things := piot.NewThings(GetDb(t), GetLogger(t))
 
     err := things.SetParent(id_child, id_parent)
     Ok(t, err)
@@ -78,12 +85,13 @@ func TestSetParent(t *testing.T) {
 }
 
 func TestTouchThing(t *testing.T) {
-    CleanDb(t)
+    db := GetDb(t)
+    CleanDb(t, db)
 
     const THING_NAME = "parent"
-    id := CreateThing(t, THING_NAME)
+    id := CreateThing(t, db, THING_NAME)
 
-    things := NewThings(GetDb(t), GetLogger(t))
+    things := piot.NewThings(GetDb(t), GetLogger(t))
 
     err := things.TouchThing(id)
     Ok(t, err)
@@ -96,9 +104,10 @@ func TestTouchThing(t *testing.T) {
 
 func TestSetAvailabilityAttributes(t *testing.T) {
     const THING_NAME = "thing2"
-    CleanDb(t)
-    thingId := CreateThing(t, THING_NAME)
-    things := NewThings(GetDb(t), GetLogger(t))
+    db := GetDb(t)
+    CleanDb(t, db)
+    thingId := CreateThing(t, db, THING_NAME)
+    things := piot.NewThings(GetDb(t), GetLogger(t))
     err := things.SetAvailabilityTopic(thingId, "available")
     Ok(t, err)
     err = things.SetAvailabilityYesNo(thingId, "yes", "no")
@@ -114,9 +123,10 @@ func TestSetAvailabilityAttributes(t *testing.T) {
 
 func TestSetLocation(t *testing.T) {
     const THING_NAME = "thing2"
-    CleanDb(t)
-    thingId := CreateThing(t, THING_NAME)
-    things := NewThings(GetDb(t), GetLogger(t))
+    db := GetDb(t)
+    CleanDb(t, db)
+    thingId := CreateThing(t, db, THING_NAME)
+    things := piot.NewThings(GetDb(t), GetLogger(t))
 
     loc := model.LocationData{23.12, 56.33333};
 
@@ -132,9 +142,10 @@ func TestSetLocation(t *testing.T) {
 
 func TestSetSensorAttributes(t *testing.T) {
     const THING_NAME = "thing2"
-    CleanDb(t)
-    thingId := CreateThing(t, THING_NAME)
-    things := NewThings(GetDb(t), GetLogger(t))
+    db := GetDb(t)
+    CleanDb(t, db)
+    thingId := CreateThing(t, db, THING_NAME)
+    things := piot.NewThings(GetDb(t), GetLogger(t))
     err := things.SetSensorMeasurementTopic(thingId, "value")
     Ok(t, err)
 
