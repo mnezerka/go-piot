@@ -7,6 +7,7 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "github.com/op/go-logging"
     "github.com/mnezerka/go-piot"
+    "github.com/mnezerka/go-piot/test"
     "github.com/mnezerka/go-piot/model"
 )
 
@@ -17,20 +18,20 @@ type services struct {
     things *piot.Things
     influxDb piot.IInfluxDb
     mysqlDb piot.IMysqlDb
-    mqtt *MqttMock
+    mqtt *test.MqttMock
     pdevices *piot.PiotDevices
 }
 
 func getServices(t *testing.T) *services {
     services := services{}
-    services.log = GetLogger(t)
-    services.db = GetDb(t)
-    services.orgs= GetOrgs(t, services.log, services.db)
-    services.things = GetThings(t, services.log, services.db)
-    services.influxDb = GetInfluxDb(t, services.log)
-    services.mysqlDb = GetMysqlDb(t, services.log)
-    services.mqtt = GetMqtt(t, services.log)
-    services.pdevices = GetPiotDevices(t , services.log, services.things, services.mqtt)
+    services.log = test.GetLogger(t)
+    services.db = test.GetDb(t)
+    services.orgs= test.GetOrgs(t, services.log, services.db)
+    services.things = test.GetThings(t, services.log, services.db)
+    services.influxDb = test.GetInfluxDb(t, services.log)
+    services.mysqlDb = test.GetMysqlDb(t, services.log)
+    services.mqtt = test.GetMqtt(t, services.log)
+    services.pdevices = test.GetPiotDevices(t , services.log, services.things, services.mqtt)
 
     return &services
 }
@@ -38,11 +39,11 @@ func getServices(t *testing.T) *services {
 // VALID packet + NEW device -> successful registration
 func TestPacketDeviceReg(t *testing.T) {
     const DEVICE = "device01"
-    const SENSOR = "SensorAddr"
+    const SENSOR = "Sensortest.Addr"
 
     s := getServices(t)
 
-    CleanDb(t, s.db)
+    test.CleanDb(t, s.db)
 
     // process packet for unknown device
     var packet model.PiotDevicePacket
@@ -55,37 +56,37 @@ func TestPacketDeviceReg(t *testing.T) {
     packet.Readings = append(packet.Readings, reading)
 
     err := s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // Check if device is registered
     var thing model.Thing
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": DEVICE}).Decode(&thing)
-    Ok(t, err)
-    Equals(t, DEVICE, thing.Name)
-    Equals(t, model.THING_TYPE_DEVICE, thing.Type)
-    Equals(t, "available", thing.AvailabilityTopic)
+    test.Ok(t, err)
+    test.Equals(t, DEVICE, thing.Name)
+    test.Equals(t, model.THING_TYPE_DEVICE, thing.Type)
+    test.Equals(t, "available", thing.AvailabilityTopic)
 
     var thing_sensor model.Thing
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": "T" + SENSOR}).Decode(&thing_sensor)
-    Ok(t, err)
-    Equals(t, "T" + SENSOR, thing_sensor.Name)
-    Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
-    Equals(t, "temperature", thing_sensor.Sensor.Class)
-    Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+    test.Ok(t, err)
+    test.Equals(t, "T" + SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "temperature", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
 
     // check correct assignment
-    Equals(t, thing.Id, thing_sensor.ParentId)
+    test.Equals(t, thing.Id, thing_sensor.ParentId)
 }
 
 // VALID packet with more measurements per 1 sensor +
 // NEW device -> successful registration of device and all sensors
 func TestPacketDeviceRegMultiple(t *testing.T) {
     const DEVICE = "device01"
-    const SENSOR = "SensorAddr"
+    const SENSOR = "Sensortest.Addr"
 
     s := getServices(t)
 
-    CleanDb(t, s.db)
+    test.CleanDb(t, s.db)
 
     // process packet for unknown device
     var packet model.PiotDevicePacket
@@ -105,40 +106,40 @@ func TestPacketDeviceRegMultiple(t *testing.T) {
     packet.Readings = append(packet.Readings, reading)
 
     err := s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // Check if device is registered
     var thing model.Thing
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": DEVICE}).Decode(&thing)
-    Ok(t, err)
-    Equals(t, DEVICE, thing.Name)
-    Equals(t, model.THING_TYPE_DEVICE, thing.Type)
-    Equals(t, "available", thing.AvailabilityTopic)
+    test.Ok(t, err)
+    test.Equals(t, DEVICE, thing.Name)
+    test.Equals(t, model.THING_TYPE_DEVICE, thing.Type)
+    test.Equals(t, "available", thing.AvailabilityTopic)
 
     var thing_sensor model.Thing
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": "T" + SENSOR}).Decode(&thing_sensor)
-    Ok(t, err)
-    Equals(t, "T" + SENSOR, thing_sensor.Name)
-    Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
-    Equals(t, "temperature", thing_sensor.Sensor.Class)
-    Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+    test.Ok(t, err)
+    test.Equals(t, "T" + SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "temperature", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
 
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": "P" + SENSOR}).Decode(&thing_sensor)
-    Ok(t, err)
-    Equals(t, "P" + SENSOR, thing_sensor.Name)
-    Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
-    Equals(t, "pressure", thing_sensor.Sensor.Class)
-    Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+    test.Ok(t, err)
+    test.Equals(t, "P" + SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "pressure", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
 
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": "H" + SENSOR}).Decode(&thing_sensor)
-    Ok(t, err)
-    Equals(t, "H" + SENSOR, thing_sensor.Name)
-    Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
-    Equals(t, "humidity", thing_sensor.Sensor.Class)
-    Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+    test.Ok(t, err)
+    test.Equals(t, "H" + SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "humidity", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
 
     // check correct assignment
-    Equals(t, thing.Id, thing_sensor.ParentId)
+    test.Equals(t, thing.Id, thing_sensor.ParentId)
 }
 
 
@@ -149,11 +150,11 @@ func TestPacketDeviceRegMultiple(t *testing.T) {
 func TestPacketDeviceUpdateParent(t *testing.T) {
     const DEVICE = "device01"
     const DEVICE2 = "device02"
-    const SENSOR = "SensorAddr"
+    const SENSOR = "Sensortest.Addr"
 
     s := getServices(t)
 
-    CleanDb(t, s.db)
+    test.CleanDb(t, s.db)
 
     // process packet for unknown device
     var packet model.PiotDevicePacket
@@ -166,44 +167,44 @@ func TestPacketDeviceUpdateParent(t *testing.T) {
     packet.Readings = append(packet.Readings, reading)
 
     err := s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // Check if device is registered
     var thing model.Thing
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": DEVICE}).Decode(&thing)
-    Ok(t, err)
-    Equals(t, DEVICE, thing.Name)
-    Equals(t, model.THING_TYPE_DEVICE, thing.Type)
-    Equals(t, "available", thing.AvailabilityTopic)
+    test.Ok(t, err)
+    test.Equals(t, DEVICE, thing.Name)
+    test.Equals(t, model.THING_TYPE_DEVICE, thing.Type)
+    test.Equals(t, "available", thing.AvailabilityTopic)
 
     var thing_sensor model.Thing
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": "T" + SENSOR}).Decode(&thing_sensor)
-    Ok(t, err)
-    Equals(t, "T" + SENSOR, thing_sensor.Name)
-    Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
-    Equals(t, "temperature", thing_sensor.Sensor.Class)
-    Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
+    test.Ok(t, err)
+    test.Equals(t, "T" + SENSOR, thing_sensor.Name)
+    test.Equals(t, model.THING_TYPE_SENSOR, thing_sensor.Type)
+    test.Equals(t, "temperature", thing_sensor.Sensor.Class)
+    test.Equals(t, "value", thing_sensor.Sensor.MeasurementTopic)
 
     // check correct assignment
-    Equals(t, thing.Id, thing_sensor.ParentId)
+    test.Equals(t, thing.Id, thing_sensor.ParentId)
 
     // assign sensor to new device
     packet.Device = DEVICE2
     err = s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // Check if second device is registered
     var thing2 model.Thing
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": DEVICE2}).Decode(&thing2)
-    Ok(t, err)
-    Equals(t, DEVICE2, thing2.Name)
+    test.Ok(t, err)
+    test.Equals(t, DEVICE2, thing2.Name)
 
     err = s.db.Collection("things").FindOne(context.TODO(), bson.M{"name": "T" + SENSOR}).Decode(&thing_sensor)
-    Ok(t, err)
-    Equals(t, "T" + SENSOR, thing_sensor.Name)
+    test.Ok(t, err)
+    test.Equals(t, "T" + SENSOR, thing_sensor.Name)
 
     // check correct re-assignment
-    Equals(t, thing2.Id, thing_sensor.ParentId)
+    test.Equals(t, thing2.Id, thing_sensor.ParentId)
 }
 
 
@@ -214,20 +215,20 @@ func TestPacketDeviceDataUnassigned(t *testing.T) {
 
     s := getServices(t)
 
-    CleanDb(t, s.db)
+    test.CleanDb(t, s.db)
 
     // create unassigned thing
-    CreateThing(t, s.db, DEVICE)
+    test.CreateThing(t, s.db, DEVICE)
 
     // process packet for known device
     var packet model.PiotDevicePacket
     packet.Device = DEVICE
 
     err := s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // check if mqtt was NOT called
-    Equals(t, 0, len(s.mqtt.Calls))
+    test.Equals(t, 0, len(s.mqtt.Calls))
 }
 
 // VALID packet + ASSIGNED device -> mqtt messages are published
@@ -237,12 +238,12 @@ func TestPacketDeviceDataAssigned(t *testing.T) {
 
     s := getServices(t)
 
-    CleanDb(t, s.db)
+    test.CleanDb(t, s.db)
 
     // create and assign thing to org
-    CreateThing(t, s.db, DEVICE)
-    orgId := CreateOrg(t, s.db, "org1")
-    AddOrgThing(t, s.db, orgId, DEVICE)
+    test.CreateThing(t, s.db, DEVICE)
+    orgId := test.CreateOrg(t, s.db, "org1")
+    test.AddOrgThing(t, s.db, orgId, DEVICE)
 
     // process packet for assigned device + provide wifi information
     var packet model.PiotDevicePacket
@@ -251,16 +252,16 @@ func TestPacketDeviceDataAssigned(t *testing.T) {
     packet.WifiSSID = &ssid
 
     err := s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // check if mqtt was called
-    Equals(t, 2, len(s.mqtt.Calls))
+    test.Equals(t, 2, len(s.mqtt.Calls))
 
-    Equals(t, "available", s.mqtt.Calls[0].Topic)
-    Equals(t, "yes", s.mqtt.Calls[0].Value)
+    test.Equals(t, "available", s.mqtt.Calls[0].Topic)
+    test.Equals(t, "yes", s.mqtt.Calls[0].Value)
 
-    Equals(t, "net/wifi/ssid", s.mqtt.Calls[1].Topic)
-    Equals(t, "SSID", s.mqtt.Calls[1].Value)
+    test.Equals(t, "net/wifi/ssid", s.mqtt.Calls[1].Topic)
+    test.Equals(t, "SSID", s.mqtt.Calls[1].Value)
 }
 
 // VALID packet + UNASSIGNED device + TEMPERATURE -> no mqtt messages are published
@@ -270,13 +271,13 @@ func TestPacketDeviceReadingTempUnassigned(t *testing.T) {
 
     s := getServices(t)
 
-    CleanDb(t, s.db)
-    CreateThing(t, s.db, DEVICE)
+    test.CleanDb(t, s.db)
+    test.CreateThing(t, s.db, DEVICE)
 
     // process packet for know device
     var temp float32 = 4.5
     var reading model.PiotSensorReading
-    reading.Address = "SensorAddr"
+    reading.Address = "Sensortest.Addr"
     reading.Temperature = &temp
 
     var packet model.PiotDevicePacket
@@ -284,26 +285,26 @@ func TestPacketDeviceReadingTempUnassigned(t *testing.T) {
     packet.Readings = append(packet.Readings, reading)
 
     err := s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // check if mqtt was called
-    Equals(t, 0, len(s.mqtt.Calls))
+    test.Equals(t, 0, len(s.mqtt.Calls))
 }
 
 // VALID packet + ASSIGNED device + TEMPERATURE -> mqtt messages are published
 func TestPacketDeviceReadingTempAssigned(t *testing.T) {
 
     const DEVICE = "device01"
-    const SENSOR = "SensorAddr"
+    const SENSOR = "Sensortest.Addr"
 
     s := getServices(t)
 
-    CleanDb(t, s.db)
-    CreateThing(t, s.db, DEVICE)
-    CreateThing(t, s.db, "T" + SENSOR)     // SENSOR is registered for temperature
-    orgId := CreateOrg(t, s.db, "org1")
-    AddOrgThing(t, s.db, orgId, DEVICE)
-    AddOrgThing(t, s.db, orgId, "T" + SENSOR) // SENSOR is registered for temperature
+    test.CleanDb(t, s.db)
+    test.CreateThing(t, s.db, DEVICE)
+    test.CreateThing(t, s.db, "T" + SENSOR)     // SENSOR is registered for temperature
+    orgId := test.CreateOrg(t, s.db, "org1")
+    test.AddOrgThing(t, s.db, orgId, DEVICE)
+    test.AddOrgThing(t, s.db, orgId, "T" + SENSOR) // SENSOR is registered for temperature
 
     // process packet for know device
     var temp float32 = 4.5
@@ -320,26 +321,26 @@ func TestPacketDeviceReadingTempAssigned(t *testing.T) {
     packet.Readings = append(packet.Readings, reading)
 
     err := s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // check if mqtt was called
-    Equals(t, 4, len(s.mqtt.Calls))
+    test.Equals(t, 4, len(s.mqtt.Calls))
 
-    Equals(t, "available", s.mqtt.Calls[0].Topic)
-    Equals(t, "yes", s.mqtt.Calls[0].Value)
-    Equals(t, DEVICE, s.mqtt.Calls[0].Thing.Name)
+    test.Equals(t, "available", s.mqtt.Calls[0].Topic)
+    test.Equals(t, "yes", s.mqtt.Calls[0].Value)
+    test.Equals(t, DEVICE, s.mqtt.Calls[0].Thing.Name)
 
-    Equals(t, "available", s.mqtt.Calls[1].Topic)
-    Equals(t, "yes", s.mqtt.Calls[1].Value)
-    Equals(t, "TSensorAddr", s.mqtt.Calls[1].Thing.Name)
+    test.Equals(t, "available", s.mqtt.Calls[1].Topic)
+    test.Equals(t, "yes", s.mqtt.Calls[1].Value)
+    test.Equals(t, "TSensortest.Addr", s.mqtt.Calls[1].Thing.Name)
 
-    Equals(t, "value", s.mqtt.Calls[2].Topic)
-    Equals(t, "4.5", s.mqtt.Calls[2].Value)
-    Equals(t, "TSensorAddr", s.mqtt.Calls[2].Thing.Name)
+    test.Equals(t, "value", s.mqtt.Calls[2].Topic)
+    test.Equals(t, "4.5", s.mqtt.Calls[2].Value)
+    test.Equals(t, "TSensortest.Addr", s.mqtt.Calls[2].Thing.Name)
 
-    Equals(t, "value/unit", s.mqtt.Calls[3].Topic)
-    Equals(t, "C", s.mqtt.Calls[3].Value)
-    Equals(t, "TSensorAddr", s.mqtt.Calls[3].Thing.Name)
+    test.Equals(t, "value/unit", s.mqtt.Calls[3].Topic)
+    test.Equals(t, "C", s.mqtt.Calls[3].Value)
+    test.Equals(t, "TSensortest.Addr", s.mqtt.Calls[3].Thing.Name)
 }
 
 // Test DOS (Denial Of Service) protection
@@ -347,21 +348,21 @@ func TestDOS(t *testing.T) {
 
     s := getServices(t)
 
-    CleanDb(t, s.db)
+    test.CleanDb(t, s.db)
 
     var packet model.PiotDevicePacket
 
     // send first packet
     packet.Device = "device01"
     err := s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 
     // check that sending same packet in short time frame is not possible
     err = s.pdevices.ProcessPacket(packet)
-    Assert(t, err != nil, "DOS protection doesn't work")
+    test.Assert(t, err != nil, "DOS protection doesn't work")
 
     // check that sending packet for different device is possible
     packet.Device = "device02"
     err = s.pdevices.ProcessPacket(packet)
-    Ok(t, err)
+    test.Ok(t, err)
 }

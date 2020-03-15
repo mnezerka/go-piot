@@ -1,4 +1,4 @@
-package piot
+package test
 
 import (
     "github.com/op/go-logging"

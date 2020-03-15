@@ -1,4 +1,4 @@
-package piot_test
+package test
 
 import (
     "context"
@@ -260,16 +260,16 @@ func GetOrgs(t *testing.T, logger *logging.Logger, db *mongo.Database) *piot.Org
     return piot.NewOrgs(logger, db)
 }
 
-func GetHttpClient(t *testing.T, logger *logging.Logger) *piot.HttpClientMock {
-    return &piot.HttpClientMock{Log: logger}
+func GetHttpClient(t *testing.T, logger *logging.Logger) *HttpClientMock {
+    return &HttpClientMock{Log: logger}
 }
 
-func GetInfluxDb(t *testing.T, logger *logging.Logger) *piot.InfluxDbMock {
-    return &piot.InfluxDbMock{Log: logger}
+func GetInfluxDb(t *testing.T, logger *logging.Logger) *InfluxDbMock {
+    return &InfluxDbMock{Log: logger}
 }
 
-func GetMysqlDb(t *testing.T, logger *logging.Logger) *piot.MysqlDbMock {
-    return &piot.MysqlDbMock{Log: logger}
+func GetMysqlDb(t *testing.T, logger *logging.Logger) *MysqlDbMock {
+    return &MysqlDbMock{Log: logger}
 }
 
 
