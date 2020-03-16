@@ -204,6 +204,7 @@ func (t *Things) SetLocation(id primitive.ObjectID, location model.LocationData)
             "$set": bson.M{
                 "location.latitude": location.Latitude,
                 "location.longitude": location.Longitude,
+                "location.date": location.Date,
             },
         },
     )
@@ -214,7 +215,6 @@ func (t *Things) SetLocation(id primitive.ObjectID, location model.LocationData)
     }
 
     return nil
-
 }
 
 func (t *Things) SetSensorMeasurementTopic(id primitive.ObjectID, topic string) (error) {

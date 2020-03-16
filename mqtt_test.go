@@ -4,6 +4,7 @@ import (
     "context"
     "fmt"
     "testing"
+    "time"
     "github.com/op/go-logging"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
@@ -73,7 +74,7 @@ func TestMqttThingLocation(t *testing.T) {
 
     test.CleanDb(t, db)
     thingId := test.CreateDevice(t, db, THING)
-    test.SetThingLocationParams(t, db, thingId , THING + "/" + "loc", "lat", "lng")
+    test.SetThingLocationParams(t, db, thingId , THING + "/" + "loc", "lat", "lng", "", false)
     orgId := test.CreateOrg(t, db, ORG)
     test.AddOrgThing(t, db, orgId, THING)
 
@@ -86,6 +87,43 @@ func TestMqttThingLocation(t *testing.T) {
     test.Assert(t, thing.Location != nil, "Thing location not initialized")
     test.Equals(t, 123.234, thing.Location.Latitude)
     test.Equals(t, 678.789, thing.Location.Longitude)
+    test.Equals(t, int32(time.Now().Unix() / 60), int32(thing.Location.Date / 60))
+
+    // send location message with date, but date value extraction is not configured
+    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789, \"date\": 456}")
+
+    thing, err = things.Get(thingId)
+    test.Ok(t, err)
+    test.Equals(t, THING, thing.Name)
+    test.Assert(t, thing.Location != nil, "Thing location not initialized")
+    test.Equals(t, 123.234, thing.Location.Latitude)
+    test.Equals(t, 678.789, thing.Location.Longitude)
+    test.Equals(t, int32(time.Now().Unix() / 60), int32(thing.Location.Date / 60))
+
+    // send location message with date, but date value extraction is configured
+    test.SetThingLocationParams(t, db, thingId , THING + "/" + "loc", "lat", "lng", "date", false)
+    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789, \"date\": 456}")
+
+    thing, err = things.Get(thingId)
+    test.Ok(t, err)
+    test.Equals(t, THING, thing.Name)
+    test.Assert(t, thing.Location != nil, "Thing location not initialized")
+    test.Equals(t, 123.234, thing.Location.Latitude)
+    test.Equals(t, 678.789, thing.Location.Longitude)
+    test.Equals(t, int32(456), thing.Location.Date)
+
+    // send location message with date,date value extraction is configured, tracking enabled
+    test.SetThingLocationParams(t, db, thingId , THING + "/" + "loc", "lat", "lng", "date", true)
+    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789, \"date\": 456}")
+
+    thing, err = things.Get(thingId)
+    test.Ok(t, err)
+    test.Equals(t, THING, thing.Name)
+    test.Assert(t, thing.Location != nil, "Thing location not initialized")
+    test.Equals(t, 123.234, thing.Location.Latitude)
+    test.Equals(t, 678.789, thing.Location.Longitude)
+    test.Equals(t, int32(456), thing.Location.Date)
+
 }
 
 // incoming sensor MQTT message for registered sensor

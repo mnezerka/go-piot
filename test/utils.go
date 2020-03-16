@@ -180,11 +180,21 @@ func SetThingTelemetryTopic(t *testing.T, db *mongo.Database, thingId primitive.
     Ok(t, err)
 }
 
-func SetThingLocationParams(t *testing.T, db *mongo.Database, thingId primitive.ObjectID, topic string, lat_value string, lng_value string) {
+func SetThingLocationParams(
+        t *testing.T,
+        db *mongo.Database,
+        thingId primitive.ObjectID,
+        topic string,
+        lat_value string,
+        lng_value string,
+        date_value string,
+        tracking bool) {
     update := bson.M{
         "location_topic": topic,
         "location_lat_value": lat_value,
         "location_lng_value": lng_value,
+        "location_date_value": date_value,
+        "location_tracking": tracking,
     }
 
     _, err := db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": thingId}, bson.M{"$set": update})
@@ -233,7 +243,7 @@ func GetDb(t *testing.T) *mongo.Database {
         err = dbClient.Ping(context.TODO(), nil)
         Ok(t, err)
 
-        db = dbClient.Database("poit-test")
+        db = dbClient.Database("piot-test")
     }
 
     return db

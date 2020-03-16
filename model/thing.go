@@ -18,6 +18,9 @@ type LocationData struct {
 
     // The longitude in degrees. It must be in the range [-180.0, +180.0].
     Longitude float64  `json:"longitude,omitempty bson:"longitude,omitempty"`
+
+    // The date when location was taken
+    Date int32  `json:"date" bson:"date"`
 }
 
 // Represents any device or app
@@ -98,6 +101,8 @@ type Thing struct {
     LocationTopic   string `json:"location_topic" bson:"location_topic"`
     LocationLatValue string `json:"location_lat_value" bson:"location_lat_value"`
     LocationLngValue string `json:"location_lng_value" bson:"location_lng_value"`
+    LocationDateValue string `json:"location_date_value" bson:"location_date_value"`
+    LocationTracking bool `json:"location_tracking" bson:"location_tracking"`
 
     // The unit of measurement that the sensor is expressed in.
     Sensor SensorData `json:"sensor" bson:"sensor"`

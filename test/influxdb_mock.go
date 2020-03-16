@@ -7,7 +7,7 @@ import (
 
 type influxDbMockCall struct {
     Thing *model.Thing
-    Value string
+    Value interface{}
 }
 
 // implements IMqtt interface
@@ -24,4 +24,9 @@ func (db *InfluxDbMock) PostMeasurement(thing *model.Thing, value string) {
 func (db *InfluxDbMock) PostSwitchState(thing *model.Thing, value string) {
     db.Log.Debugf("Influxdb - post switch state, thing: %s, val: %s", thing.Name, value)
     db.Calls = append(db.Calls, influxDbMockCall{thing, value})
+}
+
+func (db *InfluxDbMock) PostLocation(thing *model.Thing, loc *model.LocationData) {
+    db.Log.Debugf("Influxdb - post location, thing: %s, val: %v", thing.Name, loc)
+    db.Calls = append(db.Calls, influxDbMockCall{thing, loc})
 }

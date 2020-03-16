@@ -129,7 +129,7 @@ func TestSetLocation(t *testing.T) {
     thingId := test.CreateThing(t, db, THING_NAME)
     things := piot.NewThings(test.GetDb(t), test.GetLogger(t))
 
-    loc := model.LocationData{23.12, 56.33333};
+    loc := model.LocationData{23.12, 56.33333, 0};
 
     err := things.SetLocation(thingId, loc)
     test.Ok(t, err)
