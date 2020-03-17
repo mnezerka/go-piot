@@ -122,6 +122,22 @@ func TestSetAvailabilityAttributes(t *testing.T) {
     test.Equals(t, "no", thing.AvailabilityNo)
 }
 
+func TestSetLocationAttributes(t *testing.T) {
+    const THING_NAME = "thing2"
+    db := test.GetDb(t)
+    test.CleanDb(t, db)
+    thingId := test.CreateThing(t, db, THING_NAME)
+    things := piot.NewThings(test.GetDb(t), test.GetLogger(t))
+    err := things.SetLocationTopic(thingId, "loctopic")
+    test.Ok(t, err)
+
+    thing, err := things.Find(THING_NAME)
+    test.Ok(t, err)
+    test.Equals(t, THING_NAME, thing.Name)
+    test.Equals(t, "loctopic", thing.LocationTopic)
+}
+
+
 func TestSetLocation(t *testing.T) {
     const THING_NAME = "thing2"
     db := test.GetDb(t)
