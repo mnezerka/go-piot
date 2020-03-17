@@ -360,8 +360,6 @@ func (t *Mqtt) ProcessSwitches(org *model.Org, topic, payload string) {
     // convert orgs to org resolvers
     for i := 0; i < len(switches); i++ {
 
-        t.log.Infof("Have one thing")
-
         thing := switches[i]
 
         // update sensor last seen status
