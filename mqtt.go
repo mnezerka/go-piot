@@ -35,7 +35,7 @@ const TOPIC_ROOT = "org"
 type IMqtt interface {
     PushThingData(thing *model.Thing, topic, value string) error
     ProcessMessage(topic, payload string)
-    Connect() error
+    Connect(subscribe bool) error
     Disconnect() error
     SetUsername(username string)
     SetPassword(password string)
@@ -74,7 +74,7 @@ func (t *Mqtt) SetClient(id string) {
     t.Client = &id
 }
 
-func (t *Mqtt) Connect() error {
+func (t *Mqtt) Connect(subscribe bool) error {
     t.log.Infof("Connecting to MQTT broker %s", t.Uri)
 
     // create a ClientOptions struct setting the broker address, clientid, turn
@@ -89,24 +89,27 @@ func (t *Mqtt) Connect() error {
     }
 
     opts.OnConnect = func(client mqtt.Client) {
-        topic := fmt.Sprintf("%s/#", TOPIC_ROOT)
 
         t.log.Infof("Connectedt to MQTT broker %s", t.Uri)
+        if subscribe {
 
-        // subscribe for all topcis
-        t.log.Infof("Subscribing to topic #")
-        token := client.Subscribe(topic, 0, func(_ mqtt.Client, msg mqtt.Message) {
-            //processUpdate(msg.Topic(), string(msg.Payload()))
-            t.ProcessMessage(msg.Topic(), string(msg.Payload()))
-        })
-        if !token.WaitTimeout(10 * time.Second) {
-            t.log.Errorf("Timeout subscribing to topic %s (%s)", topic, token.Error())
-        }
-        if err := token.Error(); err != nil {
-            t.log.Errorf("Failed to subscribe to topic %s (%s)", topic, err)
-        }
+            topic := fmt.Sprintf("%s/#", TOPIC_ROOT)
 
-        t.log.Infof("Subscribed to topic %s", topic)
+            // subscribe for all topcis
+            t.log.Infof("Subscribing to topic #")
+            token := client.Subscribe(topic, 0, func(_ mqtt.Client, msg mqtt.Message) {
+                //processUpdate(msg.Topic(), string(msg.Payload()))
+                t.ProcessMessage(msg.Topic(), string(msg.Payload()))
+            })
+            if !token.WaitTimeout(10 * time.Second) {
+                t.log.Errorf("Timeout subscribing to topic %s (%s)", topic, token.Error())
+            }
+            if err := token.Error(); err != nil {
+                t.log.Errorf("Failed to subscribe to topic %s (%s)", topic, err)
+            }
+
+            t.log.Infof("Subscribed to topic %s", topic)
+        }
     }
 
     opts.OnConnectionLost = func(client mqtt.Client, err error) {

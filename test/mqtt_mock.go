@@ -17,7 +17,7 @@ type MqttMock struct {
     Calls []call
 }
 
-func (t *MqttMock) Connect() error {
+func (t *MqttMock) Connect(subscribe bool) error {
     return nil
 }
 

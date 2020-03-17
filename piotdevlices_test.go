@@ -31,7 +31,7 @@ func getServices(t *testing.T) *services {
     services.influxDb = test.GetInfluxDb(t, services.log)
     services.mysqlDb = test.GetMysqlDb(t, services.log)
     services.mqtt = test.GetMqtt(t, services.log)
-    services.pdevices = test.GetPiotDevices(t , services.log, services.things, services.mqtt)
+    services.pdevices = test.GetPiotDevices(t, services.log, services.things, services.mqtt)
 
     return &services
 }
