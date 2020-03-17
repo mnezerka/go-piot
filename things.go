@@ -194,10 +194,27 @@ func (t *Things) SetTelemetry(id primitive.ObjectID, telemetry string) (error) {
     return nil
 }
 
-func (t *Things) SetLocationTopic(id primitive.ObjectID, topic string) (error) {
+func (t *Things) SetLocationMqttTopic(id primitive.ObjectID, topic string) (error) {
     t.Log.Debugf("Setting thing <%s>, setting location topic to <%s>", id.Hex(), topic)
 
     _, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": bson.M{"location_topic": topic}})
+    if err != nil {
+        t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
+        return errors.New("Error while updating thing attributes")
+    }
+
+    return nil
+}
+
+func (t *Things) SetLocationMqttValues(id primitive.ObjectID, lat, lng, date string) (error) {
+    t.Log.Debugf("Setting thing <%s>, setting location mqtt params topic to <%s>, <%s>, <%s>", id.Hex(), lat, lng, date)
+
+    params := bson.M{
+        "location_lat_value": lat,
+        "location_lng_value": lng,
+        "location_date_value": date,
+    }
+    _, err := t.Db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": id}, bson.M{"$set": params})
     if err != nil {
         t.Log.Errorf("Thing %s cannot be updated (%v)", id.Hex(), err)
         return errors.New("Error while updating thing attributes")

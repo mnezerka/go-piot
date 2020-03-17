@@ -128,13 +128,20 @@ func TestSetLocationAttributes(t *testing.T) {
     test.CleanDb(t, db)
     thingId := test.CreateThing(t, db, THING_NAME)
     things := piot.NewThings(test.GetDb(t), test.GetLogger(t))
-    err := things.SetLocationTopic(thingId, "loctopic")
+
+    err := things.SetLocationMqttTopic(thingId, "loctopic")
+    test.Ok(t, err)
+
+    err = things.SetLocationMqttValues(thingId, "latval", "lngval", "dateval")
     test.Ok(t, err)
 
     thing, err := things.Find(THING_NAME)
     test.Ok(t, err)
     test.Equals(t, THING_NAME, thing.Name)
     test.Equals(t, "loctopic", thing.LocationTopic)
+    test.Equals(t, "latval", thing.LocationLatValue)
+    test.Equals(t, "lngval", thing.LocationLngValue)
+    test.Equals(t, "dateval", thing.LocationDateValue)
 }
 
 
