@@ -1,7 +1,7 @@
 package piot
 
 /* Note: checking of res.ModifiedCount could be tricky since it is
- zero when method is called multiple times in one second - last_seen
+
  attribute is updated only in the first call
 
 if res.ModifiedCount == 0 {
@@ -229,7 +229,21 @@ func (t *Things) SetLocation(id primitive.ObjectID, lat, lng float64, sat, ts in
 
     _, err := t.Db.Collection("things").UpdateOne(
         context.TODO(),
-        bson.M{"_id": id},
+        bson.M{
+            "_id": id,
+            "$or": []interface{}{
+                bson.M{
+                    "loc_ts": bson.M{
+                        "$exists": false,
+                    },
+                },
+                bson.M{
+                    "loc_ts": bson.M{
+                        "$lte": ts,
+                    },
+                },
+            },
+        },
         bson.M{
             "$set": bson.M{
                 "loc_lat": lat,

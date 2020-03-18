@@ -144,7 +144,6 @@ func TestSetLocationAttributes(t *testing.T) {
     test.Equals(t, "tsval", thing.LocationMqttTsValue)
 }
 
-
 func TestSetLocation(t *testing.T) {
     const THING_NAME = "thing2"
     db := test.GetDb(t)
@@ -161,6 +160,24 @@ func TestSetLocation(t *testing.T) {
     test.Equals(t, 23.12, thing.LocationLatitude)
     test.Equals(t, 56.33333, thing.LocationLongitude)
     test.Equals(t, int32(4), thing.LocationSatelites)
+
+    // check that current value is overwritten by more recent measurement
+    err = things.SetLocation(thingId, 1.1, 2.2, 1, 1000)
+    test.Ok(t, err)
+
+    thing, err = things.Find(THING_NAME)
+    test.Ok(t, err)
+    test.Equals(t, THING_NAME, thing.Name)
+    test.Equals(t, 1.1, thing.LocationLatitude)
+
+    // check that current value is not overwritten by old measurement
+    err = things.SetLocation(thingId, 9.10, 10.11, 1, 900)
+    test.Ok(t, err)
+
+    thing, err = things.Find(THING_NAME)
+    test.Ok(t, err)
+    test.Equals(t, THING_NAME, thing.Name)
+    test.Equals(t, 1.1, thing.LocationLatitude)
 }
 
 func TestSetSensorAttributes(t *testing.T) {
