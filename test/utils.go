@@ -7,6 +7,7 @@ import (
     "path/filepath"
     "runtime"
     "reflect"
+    "strings"
     "testing"
     "time"
     "github.com/op/go-logging"
@@ -48,6 +49,10 @@ func Equals(tb testing.TB, exp, act interface{}) {
         fmt.Printf("\033[31m%s:%d:\n\texp: %#v\n\tgot: %#v\033[39m\n", filepath.Base(file), line, exp, act)
         tb.FailNow()
     }
+}
+
+func Contains(t *testing.T, str, pattern string) {
+    Assert(t, strings.Contains(str, pattern), "String <" + str + "> doesn't contain <" + pattern + ">")
 }
 
 func CleanDb(t *testing.T, db *mongo.Database) {
@@ -187,14 +192,16 @@ func SetThingLocationParams(
         topic string,
         lat_value string,
         lng_value string,
-        date_value string,
+        sat_value string,
+        ts_value string,
         tracking bool) {
     update := bson.M{
-        "location_topic": topic,
-        "location_lat_value": lat_value,
-        "location_lng_value": lng_value,
-        "location_date_value": date_value,
-        "location_tracking": tracking,
+        "loc_mqtt_topic": topic,
+        "loc_mqtt_lat_value": lat_value,
+        "loc_mqtt_lng_value": lng_value,
+        "loc_mqtt_sat_value": sat_value,
+        "loc_mqtt_ts_value": ts_value,
+        "loc_tracking": tracking,
     }
 
     _, err := db.Collection("things").UpdateOne(context.TODO(), bson.M{"_id": thingId}, bson.M{"$set": update})

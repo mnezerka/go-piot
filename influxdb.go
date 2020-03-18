@@ -2,7 +2,7 @@ package piot
 
 /*
 https://github.com/influxdata/line-protocol/blob/master/metric.go
-https://github.com/influxdata/influxdb-client-go/blob/develop/write.go
+dlfjsdlfjkkkaaaajjjkkkttps://github.com/influxdata/influxdb-client-go/blob/develop/write.go
 */
 
 import (
@@ -21,7 +21,7 @@ import (
 type IInfluxDb interface {
     PostMeasurement(thing *model.Thing, value string)
     PostSwitchState(thing *model.Thing, value string)
-    PostLocation(thing *model.Thing, loc *model.LocationData)
+    PostLocation(thing *model.Thing, lat, lng float64, sat, ts int32)
 }
 
 type InfluxDb struct {
@@ -156,8 +156,8 @@ func (db *InfluxDb) PostSwitchState(thing *model.Thing, value string) {
     db.httpClient.PostString(url.String(), body.String(), &db.Username, &db.Password)
 }
 
-func (db *InfluxDb) PostLocation(thing *model.Thing, loc *model.LocationData) {
-    db.log.Debugf("Posting thing location to InfluxDB, thing: %s, val: %v", thing.Name, loc)
+func (db *InfluxDb) PostLocation(thing *model.Thing, lat, lng float64, sat, ts int32) {
+    db.log.Debugf("Posting thing location to InfluxDB, thing: %s, lat: %f, lng: %f, sat: %d, ts: %d", thing.Name, lat, lng, sat, ts)
 
     // get thing org -> get influxdb assigned to org
     org, err := db.orgs.Get(thing.OrgId)
@@ -174,18 +174,22 @@ func (db *InfluxDb) PostLocation(thing *model.Thing, loc *model.LocationData) {
     }
 
     fields := map[string]interface{}{
-        "lat": loc.Latitude,
-        "lng": loc.Longitude,
+        "lat": lat,
+        "lng": lng,
+        "sat": int64(sat),
     }
     tags := map[string]string{
         "id": thing.Id.Hex(),
         "name": name,
     }
 
-    rm := NewRowMetric("location", tags, fields, time.Unix(int64(loc.Date), 0))
+    rm := NewRowMetric("location", tags, fields, time.Unix(int64(ts), 0))
     buf, err := rm.Encode()
+    if err != nil {
+        db.log.Errorf("Cannot encode tags and fields into InfluxDB line protocol format: %s", err.Error())
+        return
+    }
 
-    //body := fmt.Sprintf("loc,id=%s,lat=%f,lng=%f value=%s %d", thing.Id.Hex(), name, value)
 
     url, err := url.Parse(db.Uri)
     if err != nil {
@@ -247,7 +251,8 @@ func (rm *RowMetric) Encode() (*bytes.Buffer, error) {
     buf := &bytes.Buffer{}
     e := proto.NewEncoder(buf)
     e.SetFieldTypeSupport(proto.UintSupport)
-    //e.FailOnFieldErr(c.errOnFieldErr)
+    e.SetFieldSortOrder(proto.SortFields)
+    e.FailOnFieldErr(true)
 
     if _, err := e.Encode(rm); err != nil {
         return nil, err

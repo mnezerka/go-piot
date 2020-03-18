@@ -1,7 +1,6 @@
 package piot_test
 
 import (
-    //"fmt"
     "strings"
     "testing"
     "time"
@@ -43,15 +42,13 @@ func TestInfluxDbPushMeasurementForSensor(t *testing.T) {
     influxdb.PostMeasurement(thing, "23")
 
     // check if http client was called
-
-    //httpClient := ctx.Value("httpclient").(*service.HttpClientMock)
-
     test.Equals(t, 1, len(httpClient.Calls))
 
     // check call parameters
     test.Equals(t, "http://uri/write?db=db", httpClient.Calls[0].Url)
     // cannot use next line - order of fields and tags isn't guarnteed in golang maps
     //test.Equals(t, "sensor,id=" + sensorId.Hex() + ",name=SensorAddr,class=temperature value=23", httpClient.Calls[0].Body)
+    test.Contains(t, httpClient.Calls[0].Body, "sensor")
     test.Assert(t, strings.Contains(httpClient.Calls[0].Body, "sensor"), "Body doesn't contain sensor")
     test.Assert(t, strings.Contains(httpClient.Calls[0].Body, "id=" + sensorId.Hex()), "Body doesn't contain id")
     test.Assert(t, strings.Contains(httpClient.Calls[0].Body, "name=SensorAddr"), "Body doesn't contain device name")
@@ -112,14 +109,8 @@ func TestInfluxDbPushLocForThing(t *testing.T) {
     // change type of the thing to thing
     thing.Type = model.THING_TYPE_DEVICE
 
-    loc := model.LocationData{
-        Latitude: 1.2,
-        Longitude: 56.8,
-        Date: 44444,
-    }
-
     // push measurement for thing
-    influxdb.PostLocation(thing, &loc)
+    influxdb.PostLocation(thing, 1.2, 56.8, 3, 4444)
 
     // check if http client was NOT called
     test.Equals(t, 1, len(httpClient.Calls))
@@ -128,15 +119,14 @@ func TestInfluxDbPushLocForThing(t *testing.T) {
     test.Equals(t, "http://uri/write?db=db", httpClient.Calls[0].Url)
     // following line cannot be used due to random sorting of maps (tags, fields)
     //test.Equals(t, "location,id=" + thingId.Hex() + ",name=device01 lat=1.2,lng=56.8 44444000000000\n", httpClient.Calls[0].Body)
-    test.Assert(t, strings.Contains(httpClient.Calls[0].Body, "location"), "Body doesn't contain location")
-    test.Assert(t, strings.Contains(httpClient.Calls[0].Body, "id=" + thingId.Hex()), "Body doesn't contain id")
-    test.Assert(t, strings.Contains(httpClient.Calls[0].Body, "name=device01"), "Body doesn't contain device name")
-    test.Assert(t, strings.Contains(httpClient.Calls[0].Body, "lat=1.2"), "Body doesn't contain lat")
-    test.Assert(t, strings.Contains(httpClient.Calls[0].Body, "lng=56.8"), "Body doesn't contain lng")
-    test.Assert(t, strings.Contains(httpClient.Calls[0].Body, " 44444000000000"), "Body doesn't contain timestamp")
+    test.Contains(t, httpClient.Calls[0].Body, "location")
+    test.Contains(t, httpClient.Calls[0].Body, "name=device01")
+    test.Contains(t, httpClient.Calls[0].Body, "lat=1.2")
+    test.Contains(t, httpClient.Calls[0].Body, "lng=56.8")
+    test.Contains(t, httpClient.Calls[0].Body, "sat=3")
+    test.Contains(t, httpClient.Calls[0].Body, " 4444000000000")
     test.Equals(t, "user", *httpClient.Calls[0].Username)
     test.Equals(t, "pass", *httpClient.Calls[0].Password)
-
 }
 
 func TestInfluxDbLineProtocolEncoding(t *testing.T) {

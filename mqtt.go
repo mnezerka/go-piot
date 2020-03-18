@@ -208,7 +208,7 @@ func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
     }
 
     // update location
-    devices, err = t.things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "location_topic": topic})
+    devices, err = t.things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "loc_mqtt_topic": topic})
     if err != nil {
         t.log.Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
         return
@@ -224,19 +224,21 @@ func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
         }
 
         // decode lat and lng value from json - templates are mandatory
-        if thing.LocationLatValue == "" || thing.LocationLngValue == "" {
+        if thing.LocationMqttLatValue == "" || thing.LocationMqttLngValue == "" {
             t.log.Warningf("Ignoring MQTT location message for device %s (\"%s\") due to missing location templates: %s", thing.Id.Hex(), org.Name)
             continue
         }
 
-        var loc model.LocationData
-        var haveLat = false;
-        var haveLng = false;
+        //var loc model.LocationData
+        var lat, lng  float64
+        var sat, ts int32
+        var haveLat = false
+        var haveLng = false
 
         // parse LAT
-        parsedValue := gjson.Get(payload, thing.LocationLatValue)
+        parsedValue := gjson.Get(payload, thing.LocationMqttLatValue)
         if parsedValue.Exists() {
-            loc.Latitude, err = strconv.ParseFloat(parsedValue.String(), 8)
+            lat, err = strconv.ParseFloat(parsedValue.String(), 8)
             if (err == nil) {
                 haveLat = true;
             }
@@ -247,9 +249,9 @@ func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
         }
 
         // parse LNG
-        parsedValue = gjson.Get(payload, thing.LocationLngValue)
+        parsedValue = gjson.Get(payload, thing.LocationMqttLngValue)
         if parsedValue.Exists() {
-            loc.Longitude, err = strconv.ParseFloat(parsedValue.String(), 8)
+            lng, err = strconv.ParseFloat(parsedValue.String(), 8)
             if (err == nil) {
                 haveLng = true;
             }
@@ -259,33 +261,42 @@ func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
             continue
         }
 
-        // parse DATE (optional value)
-        if thing.LocationDateValue != "" {
-            parsedValue := gjson.Get(payload, thing.LocationDateValue)
+        // parse timestamp (optional value)
+        if thing.LocationMqttTsValue != "" {
+            parsedValue := gjson.Get(payload, thing.LocationMqttTsValue)
             if parsedValue.Exists() {
-                parsedDate, err := strconv.ParseInt(parsedValue.String(), 10, 32)
+                parsedTs, err := strconv.ParseInt(parsedValue.String(), 10, 32)
 
                 if err == nil {
-                    loc.Date = int32(parsedDate)
+                    ts = int32(parsedTs)
                 } else {
-                    t.log.Warningf("Ignoring MQTT location message date for device %s (\"%s\") due to failed parsing of value", thing.Id.Hex(), org.Name)
+                    t.log.Warningf("Ignoring MQTT location message timestamp for device %s (\"%s\") due to failed parsing of value", thing.Id.Hex(), org.Name)
                 }
             }
-            if !haveLat {
-                t.log.Warningf("Ignoring MQTT location message for device %s (\"%s\") due to failed parsing of lat value", thing.Id.Hex(), org.Name)
-                continue
+        }
+
+        // parse satelites (optional value)
+        if thing.LocationMqttSatValue != "" {
+            parsedValue := gjson.Get(payload, thing.LocationMqttSatValue)
+            if parsedValue.Exists() {
+                parsedSat, err := strconv.ParseInt(parsedValue.String(), 10, 32)
+
+                if err == nil {
+                    sat = int32(parsedSat)
+                } else {
+                    t.log.Warningf("Ignoring MQTT location message satelites for device %s (\"%s\") due to failed parsing of value", thing.Id.Hex(), org.Name)
+                }
             }
         }
 
         // if both latitude and longitude were parsed, update thing
         if haveLat && haveLng {
             // if date is not set (didn't come in payload), use current date
-            if loc.Date == 0 {
-                loc.Date = int32(time.Now().Unix())
+            if ts == 0 {
+                ts = int32(time.Now().Unix())
             }
-            t.log.Warningf("LOC %v", loc)
 
-            err = t.things.SetLocation(thing.Id, loc)
+            err = t.things.SetLocation(thing.Id, lat, lng, sat, ts)
             if err != nil {
                 t.log.Errorf("MQTT processing error: %s", err.Error())
             }

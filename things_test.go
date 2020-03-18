@@ -3,7 +3,6 @@ package piot_test
 import (
     "testing"
     "github.com/mnezerka/go-piot"
-    "github.com/mnezerka/go-piot/model"
     "github.com/mnezerka/go-piot/test"
     "go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -132,16 +131,17 @@ func TestSetLocationAttributes(t *testing.T) {
     err := things.SetLocationMqttTopic(thingId, "loctopic")
     test.Ok(t, err)
 
-    err = things.SetLocationMqttValues(thingId, "latval", "lngval", "dateval")
+    err = things.SetLocationMqttValues(thingId, "latval", "lngval", "satval", "tsval")
     test.Ok(t, err)
 
     thing, err := things.Find(THING_NAME)
     test.Ok(t, err)
     test.Equals(t, THING_NAME, thing.Name)
-    test.Equals(t, "loctopic", thing.LocationTopic)
-    test.Equals(t, "latval", thing.LocationLatValue)
-    test.Equals(t, "lngval", thing.LocationLngValue)
-    test.Equals(t, "dateval", thing.LocationDateValue)
+    test.Equals(t, "loctopic", thing.LocationMqttTopic)
+    test.Equals(t, "latval", thing.LocationMqttLatValue)
+    test.Equals(t, "lngval", thing.LocationMqttLngValue)
+    test.Equals(t, "satval", thing.LocationMqttSatValue)
+    test.Equals(t, "tsval", thing.LocationMqttTsValue)
 }
 
 
@@ -152,16 +152,15 @@ func TestSetLocation(t *testing.T) {
     thingId := test.CreateThing(t, db, THING_NAME)
     things := piot.NewThings(test.GetDb(t), test.GetLogger(t))
 
-    loc := model.LocationData{23.12, 56.33333, 0};
-
-    err := things.SetLocation(thingId, loc)
+    err := things.SetLocation(thingId, 23.12, 56.33333, 4, 0)
     test.Ok(t, err)
 
     thing, err := things.Find(THING_NAME)
     test.Ok(t, err)
     test.Equals(t, THING_NAME, thing.Name)
-    test.Equals(t, 23.12, thing.Location.Latitude)
-    test.Equals(t, 56.33333, thing.Location.Longitude)
+    test.Equals(t, 23.12, thing.LocationLatitude)
+    test.Equals(t, 56.33333, thing.LocationLongitude)
+    test.Equals(t, int32(4), thing.LocationSatelites)
 }
 
 func TestSetSensorAttributes(t *testing.T) {

@@ -1,6 +1,7 @@
 package test
 
 import (
+    "fmt"
     "github.com/op/go-logging"
     "github.com/mnezerka/go-piot/model"
 )
@@ -26,7 +27,7 @@ func (db *InfluxDbMock) PostSwitchState(thing *model.Thing, value string) {
     db.Calls = append(db.Calls, influxDbMockCall{thing, value})
 }
 
-func (db *InfluxDbMock) PostLocation(thing *model.Thing, loc *model.LocationData) {
-    db.Log.Debugf("Influxdb - post location, thing: %s, val: %v", thing.Name, loc)
-    db.Calls = append(db.Calls, influxDbMockCall{thing, loc})
+func (db *InfluxDbMock) PostLocation(thing *model.Thing, lat, lng float64, sat, ts int32) {
+    db.Log.Debugf("Influxdb - post location, thing: %s, val: %f %f %d %d", thing.Name, lat, lng, sat, ts)
+    db.Calls = append(db.Calls, influxDbMockCall{thing, fmt.Sprintf("%f-%f-%d-%d", lat, lng, sat, ts)})
 }
