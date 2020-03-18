@@ -63,6 +63,7 @@ func TestMqttThingTelemetry(t *testing.T) {
 
 func TestMqttThingLocation(t *testing.T) {
     const THING = "device1"
+    const THING2= "device2"
     const ORG = "org1"
 
     log := test.GetLogger(t)
@@ -74,52 +75,54 @@ func TestMqttThingLocation(t *testing.T) {
 
     test.CleanDb(t, db)
     thingId := test.CreateDevice(t, db, THING)
-    test.SetThingLocationParams(t, db, thingId , THING + "/" + "loc", "lat", "lng", "sat", "", false)
+    thing2Id := test.CreateDevice(t, db, THING2)
     orgId := test.CreateOrg(t, db, ORG)
     test.AddOrgThing(t, db, orgId, THING)
+    test.AddOrgThing(t, db, orgId, THING2)
 
-    // send location message
-    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789}")
+    // THING1 - timestamp mqtt extraction value SET, tracking is OFF
+    test.SetThingLocationParams(t, db, thingId , THING + "/" + "loc", "lat", "lng", "sat", "ts", false)
+
+    // THING2 - timestamp mqtt extraction value NOT SET, tracking is ON
+    test.SetThingLocationParams(t, db, thing2Id , THING2 + "/" + "loc", "lat", "lng", "sat", "", true)
+
+    // THING1 send location message with timestamp -> timestamp is used
+    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789, \"ts\": 456}")
 
     thing, err := things.Get(thingId)
     test.Ok(t, err)
     test.Equals(t, THING, thing.Name)
     test.Equals(t, 123.234, thing.LocationLatitude)
     test.Equals(t, 678.789, thing.LocationLongitude)
-    test.Equals(t, int32(time.Now().Unix() / 60), int32(thing.LocationTs / 60))
-
-    // send location message with date, but date value extraction is not configured
-    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789, \"ts\": 456}")
-
-    thing, err = things.Get(thingId)
-    test.Ok(t, err)
-    test.Equals(t, THING, thing.Name)
-    test.Equals(t, 123.234, thing.LocationLatitude)
-    test.Equals(t, 678.789, thing.LocationLongitude)
-    test.Equals(t, int32(time.Now().Unix() / 60), int32(thing.LocationTs / 60))
-
-    // send location message with date, but date value extraction is configured
-    test.SetThingLocationParams(t, db, thingId , THING + "/" + "loc", "lat", "lng", "sat", "ts", false)
-    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789, \"ts\": 456}")
-
-    thing, err = things.Get(thingId)
-    test.Ok(t, err)
-    test.Equals(t, THING, thing.Name)
-    test.Equals(t, 123.234, thing.LocationLatitude)
-    test.Equals(t, 678.789, thing.LocationLongitude)
     test.Equals(t, int32(456), thing.LocationTs)
 
-    // send location message with date,date value extraction is configured, tracking enabled
-    test.SetThingLocationParams(t, db, thingId , THING + "/" + "loc", "lat", "lng", "sat", "ts", true)
-    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789, \"ts\": 456}")
+    // THING1 send location message without timestamp -> current time should be set
+    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING), "{\"lat\": 123.234, \"lng\": 678.789}")
 
     thing, err = things.Get(thingId)
     test.Ok(t, err)
     test.Equals(t, THING, thing.Name)
     test.Equals(t, 123.234, thing.LocationLatitude)
     test.Equals(t, 678.789, thing.LocationLongitude)
-    test.Equals(t, int32(456), thing.LocationTs)
+    test.Equals(t, int32(time.Now().Unix() / 60), int32(thing.LocationTs / 60))
 
+    // check no influxdb calls were initiated by previous steps
+    test.Equals(t, 0, len(influxDb.Calls))
+
+    // THING2 send location message with timestamp, -> current time should be set
+    mqtt.ProcessMessage(fmt.Sprintf("org/%s/%s/loc", ORG, THING2), "{\"lat\": 211.1, \"lng\": 222.19, \"sat\": 4, \"ts\": 600}")
+    thing, err = things.Get(thing2Id)
+    test.Ok(t, err)
+    test.Equals(t, THING2, thing.Name)
+    test.Equals(t, 211.1, thing.LocationLatitude)
+    test.Equals(t, 222.19, thing.LocationLongitude)
+    test.Equals(t, int32(time.Now().Unix() / 60), int32(thing.LocationTs / 60))
+
+    test.Equals(t, 1, len(influxDb.Calls))
+    test.Equals(t, THING2, influxDb.Calls[0].Thing.Name)
+    test.Contains(t, influxDb.Calls[0].Value, "lat:211.1")
+    test.Contains(t, influxDb.Calls[0].Value, "lng:222.1")
+    test.Contains(t, influxDb.Calls[0].Value, "sat:4")
 }
 
 // incoming sensor MQTT message for registered sensor

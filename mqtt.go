@@ -300,6 +300,10 @@ func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
             if err != nil {
                 t.log.Errorf("MQTT processing error: %s", err.Error())
             }
+
+            if thing.LocationTracking {
+                t.influxDb.PostLocation(thing, lat, lng, sat, ts)
+            }
         }
     }
 }
