@@ -46,11 +46,8 @@ func (t *Things) Get(id primitive.ObjectID) (*model.Thing, error) {
     return &thing, nil
 }
 
-func (t *Things) GetFiltered(filter interface{}) ([]*model.Thing, error) {
-
+func (t *Things) GetFiltered(ctx *AuthContext, filter interface{}) ([]*model.Thing, error) {
     collection := t.Db.Collection("things")
-
-    ctx := context.TODO()
 
     var result []*model.Thing
 
@@ -59,7 +56,7 @@ func (t *Things) GetFiltered(filter interface{}) ([]*model.Thing, error) {
         t.Log.Errorf("GQL: error : %v", err)
         return nil, err
     }
-    defer cur.Close(ctx)
+    defer cur.Close(ctx.Context)
 
     for cur.Next(ctx) {
         // To decode into a struct, use cursor.Decode()

@@ -34,7 +34,7 @@ const TOPIC_ROOT = "org"
 
 type IMqtt interface {
     PushThingData(thing *model.Thing, topic, value string) error
-    ProcessMessage(topic, payload string)
+    ProcessMessage(ctx *AuthContext, topic, payload string)
     Connect(subscribe bool) error
     Disconnect() error
     SetUsername(username string)
@@ -95,11 +95,13 @@ func (t *Mqtt) Connect(subscribe bool) error {
 
             topic := fmt.Sprintf("%s/#", TOPIC_ROOT)
 
+            ctx := NewAuthContext(nil)
+
             // subscribe for all topcis
             t.log.Infof("Subscribing to topic #")
             token := client.Subscribe(topic, 0, func(_ mqtt.Client, msg mqtt.Message) {
                 //processUpdate(msg.Topic(), string(msg.Payload()))
-                t.ProcessMessage(msg.Topic(), string(msg.Payload()))
+                t.ProcessMessage(ctx, msg.Topic(), string(msg.Payload()))
             })
             if !token.WaitTimeout(10 * time.Second) {
                 t.log.Errorf("Timeout subscribing to topic %s (%s)", topic, token.Error())
@@ -165,11 +167,11 @@ func (t *Mqtt) PushThingData(thing *model.Thing, topic, value string) (error) {
     return nil
 }
 
-func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
+func (t *Mqtt) ProcessDevices(ctx *AuthContext, org *model.Org, topic, payload string) {
     t.log.Debugf("Processing MQTT message with topic \"%s\" for devices in org \"%s\"", topic, org.Name)
 
     // update availability
-    devices, err := t.things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "availability_topic": topic})
+    devices, err := t.things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "availability_topic": topic})
     if err != nil {
         t.log.Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
         return
@@ -186,7 +188,7 @@ func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
     }
 
     // update telemetry
-    devices, err = t.things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "telemetry_topic": topic})
+    devices, err = t.things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "telemetry_topic": topic})
     if err != nil {
         t.log.Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
         return
@@ -208,7 +210,7 @@ func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
     }
 
     // update location
-    devices, err = t.things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "loc_mqtt_topic": topic})
+    devices, err = t.things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_DEVICE, "loc_mqtt_topic": topic})
     if err != nil {
         t.log.Errorf("MQTT processing error, falied fetching of org \"%s\" devices: %s", org.Name, err.Error())
         return
@@ -308,11 +310,11 @@ func (t *Mqtt) ProcessDevices(org *model.Org, topic, payload string) {
     }
 }
 
-func (t *Mqtt) ProcessSensors(org *model.Org, topic, payload string) {
+func (t *Mqtt) ProcessSensors(ctx *AuthContext, org *model.Org, topic, payload string) {
     t.log.Debugf("Processing MQTT message with topic \"%s\" for sensors in org \"%s\"", topic, org.Name)
 
     // look for sensors attached to this topic from active org
-    sensors, err := t.things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_SENSOR, "sensor.measurement_topic": topic})
+    sensors, err := t.things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_SENSOR, "sensor.measurement_topic": topic})
     if err != nil {
         t.log.Errorf("MQTT processing error, falied fetching of org \"%s\" sensors: %s", org.Name, err.Error())
         return
@@ -362,11 +364,11 @@ func (t *Mqtt) ProcessSensors(org *model.Org, topic, payload string) {
     }
 }
 
-func (t *Mqtt) ProcessSwitches(org *model.Org, topic, payload string) {
+func (t *Mqtt) ProcessSwitches(ctx *AuthContext, org *model.Org, topic, payload string) {
     t.log.Debugf("Processing MQTT message with topic \"%s\" for switches in org \"%s\"", topic, org.Name)
 
     // look for sensors attached to this topic from active org
-    switches, err := t.things.GetFiltered(bson.M{"org_id": org.Id, "type": model.THING_TYPE_SWITCH, "switch.state_topic": topic})
+    switches, err := t.things.GetFiltered(ctx, bson.M{"org_id": org.Id, "type": model.THING_TYPE_SWITCH, "switch.state_topic": topic})
     if err != nil {
         t.log.Errorf("MQTT processing error, falied fetching of org \"%s\" switches: %s", org.Name, err.Error())
         return
@@ -411,7 +413,7 @@ func (t *Mqtt) ProcessSwitches(org *model.Org, topic, payload string) {
 }
 
 // Process message received from MQTT broker for org subscription
-func (t *Mqtt) ProcessMessage(topic, payload string) {
+func (t *Mqtt) ProcessMessage(ctx *AuthContext, topic, payload string) {
     t.log.Debugf("Recieved MQTT message (topic: %s, val: %s)", topic, payload)
 
     topicParts := strings.Split(topic, "/")
@@ -437,7 +439,7 @@ func (t *Mqtt) ProcessMessage(topic, payload string) {
         return
     }
 
-    t.ProcessDevices(org, topicThing, payload);
-    t.ProcessSensors(org, topicThing, payload);
-    t.ProcessSwitches(org, topicThing, payload);
+    t.ProcessDevices(ctx, org, topicThing, payload);
+    t.ProcessSensors(ctx, org, topicThing, payload);
+    t.ProcessSwitches(ctx, org, topicThing, payload);
 }

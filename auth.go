@@ -2,14 +2,27 @@ package piot
 
 import (
     "context"
+    "github.com/mnezerka/go-piot/model"
+    /*
     "fmt"
     "github.com/op/go-logging"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/bson"
     "github.com/mnezerka/go-piot/model"
     "golang.org/x/crypto/bcrypt"
+    */
 )
 
+type AuthContext struct {
+    context.Context
+    User *model.User
+}
+
+func NewAuthContext(user *model.User) *AuthContext {
+    return &AuthContext{User: user}
+}
+
+/*
 type Auth struct { }
 
 func (a *Auth) AuthUser(ctx context.Context, email, password string) (error) {
@@ -39,3 +52,4 @@ func (a *Auth) AuthUser(ctx context.Context, email, password string) (error) {
 
     return nil
 }
+*/

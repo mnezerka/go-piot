@@ -43,7 +43,6 @@ func (t *Users) FindByEmail(email string) (*model.User, error) {
 }
 
 func (t *Users) FindUserOrgs(id primitive.ObjectID) ([]model.Org, error) {
-
     var result []model.Org
 
     t.log.Debugf("Querying orgs for user: %s", id.Hex())
@@ -87,3 +86,16 @@ func (t *Users) FindUserOrgs(id primitive.ObjectID) ([]model.Org, error) {
 
     return result, nil
 }
+
+func (t *Users) SetActiveOrg(id primitive.ObjectID, orgId primitive.ObjectID) (error) {
+    t.Log.Debugf("Setting user <%s> active org to to <%s>", id.Hex(), orgId.Hex())
+
+    _, err := t.Db.Collection("users").UpdateOne(context.Background(), bson.M{"_id": id}, bson.M{"$set": bson.M{"active_org_id": orgId}})
+    if err != nil {
+        t.Log.Errorf("User %s cannot be updated (%v)", id.Hex(), err)
+        return errors.New("Error while updating user active org")
+    }
+
+    return nil
+}
+
